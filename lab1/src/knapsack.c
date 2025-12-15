@@ -2,14 +2,13 @@
 #include <string.h>
 #include <time.h>
 
-#define MAX_ITEMS 20
+#define MAX_ITEMS 12
 
-// ========== File Reading ==========
+//File Reading
 int read_data(const char* filename, int values[], int weights[], int* capacity) {
     FILE* file = fopen(filename, "r");
     if (!file) {
-        printf("Error: Cannot open file '%s'\n", filename);
-        printf("Make sure the file exists in the data/ folder\n");
+        printf("Cannot open file '%s'\n", filename);
         return 0;
     }
     
@@ -18,10 +17,10 @@ int read_data(const char* filename, int values[], int weights[], int* capacity) 
     int reading = 0;
     
     while (fgets(line, sizeof(line), file)) {
-        // Remove newline
+        //Remove newline
         line[strcspn(line, "\n")] = 0;
         
-        // Skip empty lines
+        //Skip empty lines
         if (strlen(line) == 0) continue;
         
         if (strstr(line, "MAXIMUM WEIGHT:")) {
@@ -57,7 +56,7 @@ int read_data(const char* filename, int values[], int weights[], int* capacity) 
     return count;
 }
 
-// ========== DFS Algorithm ==========
+//DFS Algorithm
 int dfs_best = 0;
 int dfs_values[MAX_ITEMS], dfs_weights[MAX_ITEMS];
 int dfs_capacity, dfs_n;
@@ -70,12 +69,12 @@ void dfs(int level, int value, int weight) {
         return;
     }
     
-    // Take item
+    //Take item
     if (weight + dfs_weights[level] <= dfs_capacity) {
         dfs(level + 1, value + dfs_values[level], weight + dfs_weights[level]);
     }
     
-    // Skip item
+    //Skip item
     dfs(level + 1, value, weight);
 }
 
@@ -92,16 +91,10 @@ int solve_dfs(const char* filename) {
     double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
     printf("DFS Time: %.6f seconds\n", time_taken);
     
-    if (time_taken > 0.5) {
-        printf("Warning: DFS took more than 0.5 seconds!\n");
-    }
-    
     return dfs_best;
 }
 
-// ========== BFS Algorithm ==========
-#define QUEUE_SIZE 50000
-
+//BFS Algorithm
 typedef struct {
     int level, value, weight;
 } Node;
@@ -113,60 +106,66 @@ int bfs(const char* filename) {
     n = read_data(filename, values, weights, &capacity);
     if (n == 0) return -1;
     
+    #define QUEUE_SIZE 2048  //Try smaller?
+    
     Node queue[QUEUE_SIZE];
     int front = 0, rear = 0;
     int best = 0;
+    int max_used = 0;
     
-    // Start with empty knapsack
-    queue[rear].level = 0;
-    queue[rear].value = 0;
-    queue[rear].weight = 0;
-    rear++;
-    
+    queue[rear++] = (Node){0, 0, 0};
+
     clock_t start = clock();
     
     while (front < rear) {
+        //Track maximum queue usage
+        if (rear - front > max_used) {
+            max_used = rear - front;
+        }
+       
         Node current = queue[front++];
         
-        // All items processed?
         if (current.level == n) {
             if (current.value > best && current.weight <= capacity) {
                 best = current.value;
             }
             continue;
         }
-        
-        // Take item (if it fits)
-        if (current.weight + weights[current.level] <= capacity) {
-            queue[rear].level = current.level + 1;
-            queue[rear].value = current.value + values[current.level];
-            queue[rear].weight = current.weight + weights[current.level];
-            rear++;
-            
-            if (queue[rear-1].value > best) {
-                best = queue[rear-1].value;
-            }
-        }
-        
-        // Skip item
-        queue[rear].level = current.level + 1;
-        queue[rear].value = current.value;
-        queue[rear].weight = current.weight;
-        rear++;
+       //Skip item branch
+    if (current.level + 1 == n) {  // Would create leaf
+    //Evaluate leaf immediately
+    if (current.value > best && current.weight <= capacity) {
+        best = current.value;
     }
+    } else {  //Not a leaf 
+        queue[rear++] = (Node){current.level + 1, current.value, current.weight};
+    }
+
+    //Take item branch (if weight allows)
+    if (current.weight + weights[current.level] <= capacity) {
+        int new_level = current.level + 1;
+        int new_value = current.value + values[current.level];
+        int new_weight = current.weight + weights[current.level];
     
+    if (new_level == n) {  //Would create leaf
+        //Evaluate leaf immediately
+        if (new_value > best) {  // Weight already checked above
+            best = new_value;
+        }
+    } else {  //Not a leaf
+        queue[rear++] = (Node){new_level, new_value, new_weight};
+    }
+    }
+}
     clock_t end = clock();
     double time_taken = ((double)(end - start)) / CLOCKS_PER_SEC;
     printf("BFS Time: %.6f seconds\n", time_taken);
     
-    if (time_taken > 0.5) {
-        printf("Warning: BFS took more than 0.5 seconds!\n");
-    }
-    
     return best;
 }
 
-// ========== Print items ==========
+
+//Print items
 void print_items(const char* filename) {
     int values[MAX_ITEMS], weights[MAX_ITEMS];
     int capacity, n;
@@ -186,33 +185,33 @@ void print_items(const char* filename) {
     printf("\n");
 }
 
-// ========== Main ==========
+
 int main() {
-    const char* filename = "../data/knapsack.txt";  // Path from src/ to data/
+    const char* filename = "data/knapsack.txt";  
     
     printf("================================\n");
     printf("  Knapsack 0/1 - BFS vs DFS\n");
     printf("================================\n\n");
     
-    // Print loaded items
+    //Print loaded items
     print_items(filename);
     
     printf("Running algorithms...\n");
     printf("---------------------\n");
     
-    // Run DFS
+    //Run DFS
     int dfs_result = solve_dfs(filename);
     printf("DFS Result: %d\n\n", dfs_result);
     
-    // Run BFS  
+    //Run BFS  
     int bfs_result = bfs(filename);
     printf("BFS Result: %d\n\n", bfs_result);
     
-    // Compare results
+    //Compare results
     if (dfs_result == bfs_result) {
-        printf("✓ Both algorithms found the same optimal value: %d\n", dfs_result);
+        printf("Both algorithms found the same optimal value: %d\n", dfs_result);
     } else {
-        printf("✗ ERROR: Results differ! DFS=%d, BFS=%d\n", dfs_result, bfs_result);
+        printf("ERROR: Results differ! DFS=%d, BFS=%d\n", dfs_result, bfs_result);
     }
     
     printf("\n================================\n");

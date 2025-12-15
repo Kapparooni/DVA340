@@ -12,18 +12,18 @@ typedef struct {
 
 typedef struct {
     char name[MAX_NAME];
-    int h;  // heuristic to Valladolid
+    int h;  //heuristic 
 } City;
 
 Road roads[200];
 City cities[MAX_CITIES];
 int road_count = 0, city_count = 0;
 
-// Simple data loading
+//Data loading
 void load_data() {
     FILE* f = fopen("data/spain.txt", "r");
     if (!f) {
-        printf("Error: Cannot open data/spain.txt\n");
+        printf("Cannot open data/spain.txt\n");
         exit(1);
     }
     
@@ -103,7 +103,7 @@ typedef struct {
 Node nodes[1000];
 int node_count = 0;
 
-int make_node(char* city, int cost, int total, int parent) {
+int create_node(char* city, int cost, int total, int parent) {
     strcpy(nodes[node_count].city, city);
     nodes[node_count].cost = cost;
     nodes[node_count].total = total;
@@ -118,9 +118,9 @@ void print_path(int idx) {
     printf("%s", nodes[idx].city);
 }
 
-// GREEDY: uses h(n) only
+//GREEDY
 void greedy_search() {
-    printf("\n=== GREEDY BEST-FIRST ===\n");
+    printf("\n GREEDY BEST-FIRST \n");
     
     Node* open[1000];
     int open_count = 0;
@@ -129,87 +129,12 @@ void greedy_search() {
     
     // Start node
     int start_h = get_heuristic("Malaga");
-    int start_idx = make_node("Malaga", start_h, start_h, -1);
+    int start_idx = create_node("Malaga", 0, start_h, -1);  // cost = 0, total = h
     open[open_count++] = &nodes[start_idx];
     strcpy(visited[visited_count++], "Malaga");
     
     while (open_count > 0) {
-        // Find node with smallest h (most promising)
-        int best = 0;
-        for (int i = 1; i < open_count; i++) {
-            if (open[i]->cost < open[best]->cost)  // cost = h(n) for greedy
-                best = i;
-        }
-        
-        Node* current = open[best];
-        
-        // Remove from open list
-        for (int i = best; i < open_count - 1; i++)
-            open[i] = open[i + 1];
-        open_count--;
-        
-        printf("Expanding: %s (h=%d)\n", current->city, current->cost);
-        
-        // Goal check
-        if (strcmp(current->city, "Valladolid") == 0) {
-            printf("\n✓ Greedy path found!\nPath: ");
-            print_path(current - nodes);  // Get index
-            printf("\nTotal distance: %d km\n", current->total);
-            return;
-        }
-        
-        // Expand neighbors
-        for (int i = 0; i < road_count; i++) {
-            char* neighbor = NULL;
-            if (strcmp(roads[i].from, current->city) == 0)
-                neighbor = roads[i].to;
-            else if (strcmp(roads[i].to, current->city) == 0)
-                neighbor = roads[i].from;
-            
-            if (neighbor) {
-                // Check if visited
-                int seen = 0;
-                for (int j = 0; j < visited_count; j++) {
-                    if (strcmp(visited[j], neighbor) == 0) {
-                        seen = 1;
-                        break;
-                    }
-                }
-                
-                if (!seen) {
-                    int h = get_heuristic(neighbor);
-                    int idx = make_node(neighbor, h, h, current - nodes);
-                    open[open_count++] = &nodes[idx];
-                    strcpy(visited[visited_count++], neighbor);
-                    printf("  -> %s (h=%d)\n", neighbor, h);
-                }
-            }
-        }
-    }
-    printf("\n✗ No path found!\n");
-}
-
-// A*: uses g(n) + h(n)
-void astar_search() {
-    printf("\n=== A* SEARCH ===\n");
-    
-    Node* open[1000];
-    int open_count = 0;
-    int g_values[100];  // Track best g for each city
-    char city_names[100][MAX_NAME];
-    int cities_seen = 0;
-    
-    // Start node
-    int start_h = get_heuristic("Malaga");
-    int start_idx = make_node("Malaga", 0, start_h, -1);  // cost = g, total = f
-    open[open_count++] = &nodes[start_idx];
-    
-    strcpy(city_names[cities_seen], "Malaga");
-    g_values[cities_seen] = 0;
-    cities_seen++;
-    
-    while (open_count > 0) {
-        // Find node with smallest f
+        // Find node with smallest total = h
         int best = 0;
         for (int i = 1; i < open_count; i++) {
             if (open[i]->total < open[best]->total)
@@ -223,6 +148,84 @@ void astar_search() {
             open[i] = open[i + 1];
         open_count--;
         
+        printf("Expanding: %s (path distance=%d, h=%d)\n", current->city, current->cost, current->total);
+        
+        // Goal check
+        if (strcmp(current->city, "Valladolid") == 0) {
+            printf("\nGreedy path found!\nPath: ");
+            print_path(current - nodes);
+            printf("\nTotal distance: %d km\n", current->cost);
+            return;
+        }
+        
+        // Expand neighbors
+        for (int i = 0; i < road_count; i++) {
+            char* neighbor = NULL;
+            if (strcmp(roads[i].from, current->city) == 0)
+                neighbor = roads[i].to;
+            else if (strcmp(roads[i].to, current->city) == 0)
+                neighbor = roads[i].from;
+            
+            if (neighbor) {
+                // Skip visited
+                int seen = 0;
+                for (int j = 0; j < visited_count; j++) {
+                    if (strcmp(visited[j], neighbor) == 0) {
+                        seen = 1;
+                        break;
+                    }
+                }
+                
+                if (!seen) {
+                    int h = get_heuristic(neighbor);                    // heuristic for Greedy
+                    int road_cost = get_distance(current->city, neighbor); // actual distance
+                    int idx = create_node(neighbor, current->cost + road_cost, h, current - nodes);
+                    open[open_count++] = &nodes[idx];
+                    strcpy(visited[visited_count++], neighbor);
+                    printf("  -> %s (path distance=%d, h=%d)\n", neighbor, nodes[idx].cost, h);
+                }
+            }
+        }
+    }
+    
+    printf("\nNo path found!\n");
+}
+
+
+//A*
+void astar_search() {
+    printf("\n A* SEARCH \n");
+    
+    Node* open[1000];
+    int open_count = 0;
+    int g_values[100];  //Track best g values
+    char city_names[100][MAX_NAME];
+    int cities_seen = 0;
+    
+    //Start node
+    int start_h = get_heuristic("Malaga");
+    int start_idx = create_node("Malaga", 0, start_h, -1);  // cost = g, total = f
+    open[open_count++] = &nodes[start_idx];
+    
+    strcpy(city_names[cities_seen], "Malaga");
+    g_values[cities_seen] = 0;
+    cities_seen++;
+    
+    while (open_count > 0) {
+        //Find node with smallest f
+        int best = 0;
+        for (int i = 1; i < open_count; i++) {
+            if (open[i]->total < open[best]->total)
+                best = i;
+        }
+        
+        Node* current = open[best];
+        
+        //Remove from open
+        for (int i = best; i < open_count - 1; i++)
+            open[i] = open[i + 1];
+        open_count--;
+        
         printf("Expanding: %s (g=%d, h=%d, f=%d)\n", 
                current->city, current->cost, 
                current->total - current->cost,  // h = f - g
@@ -230,13 +233,13 @@ void astar_search() {
         
         // Goal check
         if (strcmp(current->city, "Valladolid") == 0) {
-            printf("\n✓ A* optimal path found!\nPath: ");
+            printf("\nA* optimal path found!\nPath: ");
             print_path(current - nodes);
             printf("\nTotal distance: %d km\n", current->cost);  // g = total distance
             return;
         }
         
-        // Expand neighbors
+        //Expand neighbors
         for (int i = 0; i < road_count; i++) {
             char* neighbor = NULL;
             if (strcmp(roads[i].from, current->city) == 0)
@@ -250,7 +253,7 @@ void astar_search() {
                 int h_new = get_heuristic(neighbor);
                 int f_new = g_new + h_new;
                 
-                // Check if we have a better path to this city
+                //Check for better path
                 int found = -1;
                 for (int j = 0; j < cities_seen; j++) {
                     if (strcmp(city_names[j], neighbor) == 0) {
@@ -260,8 +263,8 @@ void astar_search() {
                 }
                 
                 if (found == -1 || g_new < g_values[found]) {
-                    // New or better path
-                    int idx = make_node(neighbor, g_new, f_new, current - nodes);
+                    //New or better path
+                    int idx = create_node(neighbor, g_new, f_new, current - nodes);
                     open[open_count++] = &nodes[idx];
                     
                     if (found == -1) {
@@ -278,12 +281,11 @@ void astar_search() {
             }
         }
     }
-    printf("\n✗ No path found!\n");
+    printf("\nNo path found!\n");
 }
 
 int main() {
-    printf("SPAIN SEARCH: Malaga to Valladolid\n");
-    printf("===================================\n");
+    printf("Malaga to Valladolid\n");
     
     load_data();
     greedy_search();

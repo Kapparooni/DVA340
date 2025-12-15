@@ -6,23 +6,23 @@
 #define SIZE 9
 #define MAX_SUDOKUS 10
 
-// Check if number can be placed at (row, col)
+//Check if number can be placed
 bool is_valid(int grid[SIZE][SIZE], int row, int col, int num) {
-    // Check row
+    //Check row
     for (int x = 0; x < SIZE; x++) {
         if (grid[row][x] == num) {
             return false;
         }
     }
     
-    // Check column
+    //Check column
     for (int x = 0; x < SIZE; x++) {
         if (grid[x][col] == num) {
             return false;
         }
     }
     
-    // Check 3x3 box
+    //Check 3x3 box
     int box_row = row - row % 3;
     int box_col = col - col % 3;
     
@@ -37,7 +37,7 @@ bool is_valid(int grid[SIZE][SIZE], int row, int col, int num) {
     return true;
 }
 
-// Find next empty cell (0 = empty)
+//Find next empty cell
 bool find_empty(int grid[SIZE][SIZE], int *row, int *col) {
     for (*row = 0; *row < SIZE; (*row)++) {
         for (*col = 0; *col < SIZE; (*col)++) {
@@ -49,23 +49,23 @@ bool find_empty(int grid[SIZE][SIZE], int *row, int *col) {
     return false;
 }
 
-// Main backtracking solver
+//Backtracking solver
 bool solve(int grid[SIZE][SIZE]) {
     int row, col;
     
-    // If no empty cells, puzzle is solved
+    //If no empty cells, puzzle is solved
     if (!find_empty(grid, &row, &col)) {
         return true;
     }
     
-    // Try numbers 1 through 9
+    //Try numbers 1 through 9
     for (int num = 1; num <= 9; num++) {
-        // Check if this number is valid
+        //Check if valid
         if (is_valid(grid, row, col, num)) {
-            // Try placing the number
+            //Try placing number
             grid[row][col] = num;
             
-            // Recursively try to solve the rest
+            //Recursively try to solve 
             if (solve(grid)) {
                 return true;
             }
@@ -76,11 +76,11 @@ bool solve(int grid[SIZE][SIZE]) {
         }
     }
     
-    // No number worked, need to backtrack further
+    //No number worked, need to backtrack further
     return false;
 }
 
-// Print the Sudoku grid
+//Print the Sudoku grid
 void print_grid(int grid[SIZE][SIZE]) {
     for (int row = 0; row < SIZE; row++) {
         if (row % 3 == 0 && row != 0) {
@@ -102,8 +102,7 @@ void print_grid(int grid[SIZE][SIZE]) {
     }
 }
 
-// Read all Sudokus from file
-// Read all Sudokus from file - MINIMAL FIX
+//Read all Sudokus from file
 int read_sudokus_from_file(char* filename, int sudokus[][SIZE][SIZE]) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -116,30 +115,30 @@ int read_sudokus_from_file(char* filename, int sudokus[][SIZE][SIZE]) {
     int row = 0;
     int count = 0;
     
-    // Read until EOF
+    //Read until EOF
     while (fgets(line, sizeof(line), file) != NULL) {
-        // Remove newline
+        //Remove newline
         line[strcspn(line, "\n")] = '\0';
         
-        // Skip empty lines
+        //Skip empty lines
         if (strlen(line) == 0) continue;
         
-        // Stop at EOF marker
+        //Stop at EOF marker
         if (strstr(line, "EOF") != NULL) break;
         
-        // Skip other header lines
+        //Skip other header lines
         if (strstr(line, "NAME:") != NULL) continue;
         if (strstr(line, "TYPE:") != NULL) continue;
         if (strstr(line, "COMMENT:") != NULL) continue;
         
-        // Check if this is a new Sudoku header
+        //Check if this is a new Sudoku header
         if (strstr(line, "SUDOKU") != NULL) {
             current_sudoku++;
             row = 0;
             continue;
         }
         
-        // Only process if we have a valid Sudoku and valid line
+        //Only process if we have a valid Sudoku and valid line
         if (current_sudoku >= 0 && current_sudoku < MAX_SUDOKUS && 
             row < SIZE && strlen(line) >= SIZE) {
             for (int col = 0; col < SIZE; col++) {
@@ -147,9 +146,9 @@ int read_sudokus_from_file(char* filename, int sudokus[][SIZE][SIZE]) {
             }
             row++;
             
-            // If we completed a Sudoku, increment count
+            //If completed a Sudoku
             if (row == SIZE) {
-                count = current_sudoku + 1; // +1 because current_sudoku is 0-based
+                count = current_sudoku + 1; 
             }
         }
     }
@@ -160,53 +159,26 @@ int read_sudokus_from_file(char* filename, int sudokus[][SIZE][SIZE]) {
 
 int main() {
     printf("SUDOKU SOLVER (Backtracking/DFS)\n");
-    printf("================================\n\n");
     
-    // Array to store all Sudokus
+    //Array to store all puzzles
     int sudokus[MAX_SUDOKUS][SIZE][SIZE];
     int sudoku_count = 0;
     
-    // Read puzzles from file
+    //Read from file
     sudoku_count = read_sudokus_from_file("data/sudoku.txt", sudokus);
     
-    if (sudoku_count == 0) {
-        printf("No Sudokus found in file. Using example Sudoku.\n");
-        
-        // Use example Sudoku from assignment
-        int example[SIZE][SIZE] = {
-            {5, 3, 0, 0, 7, 0, 0, 0, 0},
-            {6, 0, 0, 1, 9, 5, 0, 0, 0},
-            {0, 9, 8, 0, 0, 0, 0, 6, 0},
-            {8, 0, 0, 0, 6, 0, 0, 0, 3},
-            {4, 0, 0, 8, 0, 3, 0, 0, 1},
-            {7, 0, 0, 0, 2, 0, 0, 0, 6},
-            {0, 6, 0, 0, 0, 0, 2, 8, 0},
-            {0, 0, 0, 4, 1, 9, 0, 0, 5},
-            {0, 0, 0, 0, 8, 0, 0, 7, 9}
-        };
-        
-        // Copy example to first Sudoku
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                sudokus[0][i][j] = example[i][j];
-            }
-        }
-        sudoku_count = 1;
-    }
     
     printf("Found %d Sudoku puzzle(s)\n\n", sudoku_count);
     
-    // Solve each Sudoku
+    //Solve each puzzle
     for (int s = 0; s < sudoku_count; s++) {
-        printf("\n════════════════════════════════════════\n");
         printf("SUDOKU #%d\n", s + 1);
-        printf("════════════════════════════════════════\n\n");
         
         printf("Initial puzzle:\n");
         print_grid(sudokus[s]);
         printf("\n");
         
-        // Make a copy to solve (don't modify the original)
+        //Make a copy to solve 
         int grid[SIZE][SIZE];
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
@@ -226,7 +198,7 @@ int main() {
         printf("\n");
     }
     
-    printf("================================\n");
+    
     printf("All %d Sudoku(s) processed.\n", sudoku_count);
     
     return 0;
