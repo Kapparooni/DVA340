@@ -2,7 +2,7 @@
 #include <string.h>
 #include <time.h>
 
-#define MAX_ITEMS 12
+#define MAX_ITEMS 11
 
 //File Reading
 int read_data(const char* filename, int values[], int weights[], int* capacity) {
@@ -131,30 +131,30 @@ int bfs(const char* filename) {
             }
             continue;
         }
-       //Skip item branch
-    if (current.level + 1 == n) {  // Would create leaf
-    //Evaluate leaf immediately
-    if (current.value > best && current.weight <= capacity) {
-        best = current.value;
-    }
-    } else {  //Not a leaf 
-        queue[rear++] = (Node){current.level + 1, current.value, current.weight};
-    }
-
-    //Take item branch (if weight allows)
-    if (current.weight + weights[current.level] <= capacity) {
-        int new_level = current.level + 1;
-        int new_value = current.value + values[current.level];
-        int new_weight = current.weight + weights[current.level];
-    
-    if (new_level == n) {  //Would create leaf
+        //Skip item branch
+        if (current.level + 1 == n) {  //Would create leaf
         //Evaluate leaf immediately
-        if (new_value > best) {  // Weight already checked above
-            best = new_value;
+        if (current.value > best && current.weight <= capacity) {
+            best = current.value;
         }
-    } else {  //Not a leaf
-        queue[rear++] = (Node){new_level, new_value, new_weight};
-    }
+        } else {  //Not a leaf 
+            queue[rear++] = (Node){current.level + 1, current.value, current.weight};
+        }
+
+        //Take item branch (if weight allows)
+        if (current.weight + weights[current.level] <= capacity) {
+            int new_level = current.level + 1;
+            int new_value = current.value + values[current.level];
+            int new_weight = current.weight + weights[current.level];
+        
+        if (new_level == n) {  //Would create leaf
+            //Evaluate leaf immediately
+            if (new_value > best) {  
+                best = new_value;
+            }
+        } else {  //Not a leaf
+            queue[rear++] = (Node){new_level, new_value, new_weight};
+        }
     }
 }
     clock_t end = clock();
@@ -187,11 +187,9 @@ void print_items(const char* filename) {
 
 
 int main() {
-    const char* filename = "data/knapsack.txt";  
+    const char* filename = "lab1/data/knapsack.txt";  
     
-    printf("================================\n");
     printf("  Knapsack 0/1 - BFS vs DFS\n");
-    printf("================================\n\n");
     
     //Print loaded items
     print_items(filename);
@@ -214,6 +212,5 @@ int main() {
         printf("ERROR: Results differ! DFS=%d, BFS=%d\n", dfs_result, bfs_result);
     }
     
-    printf("\n================================\n");
     return 0;
 }

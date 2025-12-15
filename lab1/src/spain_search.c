@@ -21,7 +21,7 @@ int road_count = 0, city_count = 0;
 
 //Data loading
 void load_data() {
-    FILE* f = fopen("data/spain.txt", "r");
+    FILE* f = fopen("lab1/data/spain.txt", "r");
     if (!f) {
         printf("Cannot open data/spain.txt\n");
         exit(1);

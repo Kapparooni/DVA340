@@ -165,7 +165,7 @@ int main() {
     int sudoku_count = 0;
     
     //Read from file
-    sudoku_count = read_sudokus_from_file("data/sudoku.txt", sudokus);
+    sudoku_count = read_sudokus_from_file("lab2/data/sudoku.txt", sudokus);
     
     
     printf("Found %d Sudoku puzzle(s)\n\n", sudoku_count);
